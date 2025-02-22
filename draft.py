@@ -42,12 +42,8 @@ def calculate_scores(players, team_players, chem_data, player_stats, season_data
     
     """
     scores = {}
-    print(players)
     for player in players:
-        print(player)
         chem_score = calculate_chemistry_metric(team_players, player, players, chem_data)
-        print("after")
-        print(player)
         """# Calculate chemistry score
         chem_score = 0
         for team_player in team_players:
@@ -101,9 +97,6 @@ def calculate_scores(players, team_players, chem_data, player_stats, season_data
     """total_score = (chem_score * 50) + (slugging * 5) + (charge_hit_power * 3) + (slap_hit_power * 3) + (speed * 2) + (home_runs * 4) + (pitching_stamina * 2)"""
 
     final_scores = create_player_tuples(scores)
-    #print(scores.keys())
-    #print(scores['Kritter'])
-    #print(scores['Red Mii Male'])
 
     """# Append player's score and components to the list
         scores.append((player, total_score, chem_score, slugging, charge_hit_power, slap_hit_power, speed, home_runs, pitching_stamina))"""

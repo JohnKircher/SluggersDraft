@@ -29,7 +29,7 @@ def min_max_scale_scores(scores):
 def calculate_chemistry_metric(current_team, player, remaining_players, df, k=0.9, x0=4.5, neg_chem_weight=.5):
     # Generate available players
     available_players = remaining_players
-    available_players.remove(player)
+    available_players = list(set(remaining_players) - set(player))
 
     # Calculate the weight based on the size of the current team
     team_size = len(current_team)
