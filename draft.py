@@ -1,10 +1,17 @@
+import math
+import ast
 import pandas as pd
 from colorama import Fore, Style  # For colored text
+from utils import min_max_scale_scores, calculate_chemistry_metric, create_player_tuples
 
 # Load data
 chem_data = pd.read_excel('sortedmasterchem.xlsx')
 player_stats = pd.read_excel('Player Statistics.xlsx')
 season_data = pd.read_excel('Season Data.xlsx')
+
+# Convert Chemistry and Hate to python list instead of string
+chem_data['Chemistry'] = chem_data['Chemistry'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else x)
+chem_data['Hate'] = chem_data['Hate'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else x)
 
 # Hardcoded team names and initial picks
 teams = {
@@ -29,8 +36,19 @@ average_pitching_stamina = player_stats['Pitching Stamina'].mean()
 # Function to calculate player scores for a list of players
 def calculate_scores(players, team_players, chem_data, player_stats, season_data):
     scores = []
+    """
+    scores: dictionary of the players as keys and the values as dictionaries of keys with chem_score, slugging, charge_hit power etc. and values as their value
+    scores = {'Mario': {'chem_score': .8},...}
+    
+    """
+    scores = {}
+    print(players)
     for player in players:
-        # Calculate chemistry score
+        print(player)
+        chem_score = calculate_chemistry_metric(team_players, player, players, chem_data)
+        print("after")
+        print(player)
+        """# Calculate chemistry score
         chem_score = 0
         for team_player in team_players:
             # Check if player exists in chem_data
@@ -41,7 +59,7 @@ def calculate_scores(players, team_players, chem_data, player_stats, season_data
                 if team_player in chemistry_list:
                     chem_score += 1
                 if team_player in hate_list:
-                    chem_score -= 1
+                    chem_score -= 1"""
         
         # Get player stats
         stats = player_stats.loc[player_stats['Character'] == player]
@@ -65,14 +83,32 @@ def calculate_scores(players, team_players, chem_data, player_stats, season_data
             slap_hit_power = stats['Slap Hit Power'].values[0]
             speed = stats['Speed'].values[0]
             pitching_stamina = stats['Pitching Stamina'].values[0]
+            
         
-        # Weighted score (chemistry is the primary factor)
-        total_score = (chem_score * 50) + (slugging * 5) + (charge_hit_power * 3) + (slap_hit_power * 3) + (speed * 2) + (home_runs * 4) + (pitching_stamina * 2)
+        scores[player] = {
+            'chem_score': chem_score,
+            'slugging': slugging,
+            'charge_hit_power': charge_hit_power,
+            'slap_hit_power': slap_hit_power,
+            'speed': speed,
+            'home_runs': home_runs,
+            'pitching_stamina': pitching_stamina,
+        }
         
-        # Append player's score and components to the list
-        scores.append((player, total_score, chem_score, slugging, charge_hit_power, slap_hit_power, speed, home_runs, pitching_stamina))
+    scores = min_max_scale_scores(scores)
+        
+    # Weighted score (chemistry is the primary factor)
+    """total_score = (chem_score * 50) + (slugging * 5) + (charge_hit_power * 3) + (slap_hit_power * 3) + (speed * 2) + (home_runs * 4) + (pitching_stamina * 2)"""
+
+    final_scores = create_player_tuples(scores)
+    #print(scores.keys())
+    #print(scores['Kritter'])
+    #print(scores['Red Mii Male'])
+
+    """# Append player's score and components to the list
+        scores.append((player, total_score, chem_score, slugging, charge_hit_power, slap_hit_power, speed, home_runs, pitching_stamina))"""
     
-    return scores
+    return final_scores
 
 # Function to check if a player hates anyone on the team
 def check_hate(player, team_players, chem_data):
