@@ -26,48 +26,53 @@ average_speed = player_stats['Speed'].mean()
 average_home_runs = season_data['Home Runs'].mean()
 average_pitching_stamina = player_stats['Pitching Stamina'].mean()
 
-# Function to calculate player score
-def calculate_score(player, team_players, chem_data, player_stats, season_data):
-    # Calculate chemistry score
-    chem_score = 0
-    for team_player in team_players:
-        # Check if player exists in chem_data
-        player_chem_data = chem_data.loc[chem_data['Character Name'] == player]
-        if not player_chem_data.empty:
-            chemistry_list = player_chem_data['Chemistry'].values[0] if player_chem_data['Chemistry'].values[0] else []
-            hate_list = player_chem_data['Hate'].values[0] if player_chem_data['Hate'].values[0] else []
-            if team_player in chemistry_list:
-                chem_score += 1
-            if team_player in hate_list:
-                chem_score -= 1
+# Function to calculate player scores for a list of players
+def calculate_scores(players, team_players, chem_data, player_stats, season_data):
+    scores = []
+    for player in players:
+        # Calculate chemistry score
+        chem_score = 0
+        for team_player in team_players:
+            # Check if player exists in chem_data
+            player_chem_data = chem_data.loc[chem_data['Character Name'] == player]
+            if not player_chem_data.empty:
+                chemistry_list = player_chem_data['Chemistry'].values[0] if player_chem_data['Chemistry'].values[0] else []
+                hate_list = player_chem_data['Hate'].values[0] if player_chem_data['Hate'].values[0] else []
+                if team_player in chemistry_list:
+                    chem_score += 1
+                if team_player in hate_list:
+                    chem_score -= 1
+        
+        # Get player stats
+        stats = player_stats.loc[player_stats['Character'] == player]
+        season_stats = season_data.loc[season_data['First Name'] == player]
+        
+        # Use 25% of average stats if player is missing in season_data
+        if season_stats.empty:
+            slugging = average_slugging * 0.25
+            home_runs = average_home_runs * 0.25
+        else:
+            slugging = season_stats['Slugging Percentage'].mean()
+            home_runs = season_stats['Home Runs'].sum()
+        
+        if stats.empty:
+            charge_hit_power = average_charge_hit_power * 0.25
+            slap_hit_power = average_slap_hit_power * 0.25
+            speed = average_speed * 0.25
+            pitching_stamina = average_pitching_stamina * 0.25
+        else:
+            charge_hit_power = stats['Charge Hit Power'].values[0]
+            slap_hit_power = stats['Slap Hit Power'].values[0]
+            speed = stats['Speed'].values[0]
+            pitching_stamina = stats['Pitching Stamina'].values[0]
+        
+        # Weighted score (chemistry is the primary factor)
+        total_score = (chem_score * 50) + (slugging * 5) + (charge_hit_power * 3) + (slap_hit_power * 3) + (speed * 2) + (home_runs * 4) + (pitching_stamina * 2)
+        
+        # Append player's score and components to the list
+        scores.append((player, total_score, chem_score, slugging, charge_hit_power, slap_hit_power, speed, home_runs, pitching_stamina))
     
-    # Get player stats
-    stats = player_stats.loc[player_stats['Character'] == player]
-    season_stats = season_data.loc[season_data['First Name'] == player]
-    
-    # Use 25% of average stats if player is missing in season_data
-    if season_stats.empty:
-        slugging = average_slugging * 0.25
-        home_runs = average_home_runs * 0.25
-    else:
-        slugging = season_stats['Slugging Percentage'].mean()
-        home_runs = season_stats['Home Runs'].sum()
-    
-    if stats.empty:
-        charge_hit_power = average_charge_hit_power * 0.25
-        slap_hit_power = average_slap_hit_power * 0.25
-        speed = average_speed * 0.25
-        pitching_stamina = average_pitching_stamina * 0.25
-    else:
-        charge_hit_power = stats['Charge Hit Power'].values[0]
-        slap_hit_power = stats['Slap Hit Power'].values[0]
-        speed = stats['Speed'].values[0]
-        pitching_stamina = stats['Pitching Stamina'].values[0]
-    
-    # Weighted score (chemistry is the primary factor)
-    total_score = (chem_score * 50) + (slugging * 5) + (charge_hit_power * 3) + (slap_hit_power * 3) + (speed * 2) + (home_runs * 4) + (pitching_stamina * 2)
-    
-    return total_score
+    return scores
 
 # Function to check if a player hates anyone on the team
 def check_hate(player, team_players, chem_data):
@@ -132,34 +137,26 @@ while remaining_players:
         print(f"{i}. {player} (Chemistry Links: {chem_score}) {hate_text} {hates_team_text}")
     
     # Calculate best available players for this team
-    player_scores = []
-    for player in remaining_players:
-        score = calculate_score(player, teams[current_team], chem_data, player_stats, season_data)
-        if score != -1:  # Only include players with valid scores
-            # Calculate chemistry links and hate count for top 5 players
-            chem_score = 0
-            hate_count = 0
-            player_chem_data = chem_data.loc[chem_data['Character Name'] == player]
-            if not player_chem_data.empty:
-                chemistry_list = player_chem_data['Chemistry'].values[0] if player_chem_data['Chemistry'].values[0] else []
-                hate_list = player_chem_data['Hate'].values[0] if player_chem_data['Hate'].values[0] else []
-                for team_player in teams[current_team]:
-                    if team_player in chemistry_list:
-                        chem_score += 1
-                    if team_player in hate_list:
-                        hate_count += 1
-            hates_team = check_hate(player, teams[current_team], chem_data)
-            player_scores.append((player, score, chem_score, hate_count, hates_team))
+    player_scores = calculate_scores(remaining_players, teams[current_team], chem_data, player_stats, season_data)
     
     # Sort by score (chemistry is the primary factor)
     player_scores.sort(key=lambda x: x[1], reverse=True)
     
     # Display top 5 suggestions
     print(f"\nTeam {current_team}, top 5 best available players:")
-    for i, (player, score, chem_score, hate_count, hates_team) in enumerate(player_scores[:5], start=1):
+    for i, (player, total_score, chem_score, slugging, charge_hit_power, slap_hit_power, speed, home_runs, pitching_stamina) in enumerate(player_scores[:5], start=1):
+        hate_count = 0
+        hates_team = 0
+        player_chem_data = chem_data.loc[chem_data['Character Name'] == player]
+        if not player_chem_data.empty:
+            hate_list = player_chem_data['Hate'].values[0] if player_chem_data['Hate'].values[0] else []
+            for team_player in teams[current_team]:
+                if team_player in hate_list:
+                    hate_count += 1
+            hates_team = check_hate(player, teams[current_team], chem_data)
         hate_text = f"{Fore.RED}(Hated by {hate_count}){Style.RESET_ALL}" if hate_count > 0 else ""
         hates_team_text = f"{Fore.RED}(Hates {hates_team} teammates){Style.RESET_ALL}" if hates_team > 0 else ""
-        print(f"{i}. {player} (Score: {score}, Chemistry Links: {chem_score}) {hate_text} {hates_team_text}")
+        print(f"{i}. {player} (Score: {total_score}, Chemistry Links: {chem_score}) {hate_text} {hates_team_text}")
     
     # User makes a pick
     if player_scores:  # Ensure there are players to pick
