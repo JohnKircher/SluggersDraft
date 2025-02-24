@@ -25,6 +25,11 @@ teams = {
     "Jmo": []
 }
 
+# List of captains
+captains = ["Mario", "Luigi", "Peach", "Daisy", "Yoshi", "Birdo", "Wario", "Waluigi", "Donkey Kong", "Diddy Kong", "Bowser", "Bowser Jr"]
+# Initialize a dictionary to track if each team has a captain
+teams_with_captain = {team: False for team in teams}
+
 # Calculate average stats for missing players
 average_slugging = season_data['Slugging Percentage'].mean()
 average_charge_hit_power = player_stats['Charge Hit Power'].mean()
@@ -116,6 +121,8 @@ def check_hate(player, team_players, chem_data):
 
 # Main draft loop
 remaining_players = list(player_stats['Character'])  # Use all players from Player Statistics
+remaining_captains = [player for player in remaining_players if player in captains]  # Track remaining captains
+
 for team in teams:
     remaining_players = [player for player in remaining_players if player not in teams[team]]
 
@@ -133,7 +140,7 @@ while remaining_players:
     current_team = draft_order.pop(0)  # Get the next team in the draft order
     draft_order.append(current_team)  # Add the team back to the end of the draft order
     counter += 1
-    print(draft_order)
+    
     if counter % 8 == 0:
         draft_order = list(reversed(draft_order))
         
@@ -143,6 +150,40 @@ while remaining_players:
         hate_count = check_hate(player, teams[current_team], chem_data)
         hate_text = f"{Fore.RED}(Hates {hate_count} teammates){Style.RESET_ALL}" if hate_count > 0 else ""
         print(f"{i}. {player} {hate_text}")
+    
+    # Check if the team needs to pick a captain
+    teams_missing_captain = [team for team, has_captain in teams_with_captain.items() if not has_captain]
+    
+    # Only show the warning if there are still captains remaining
+    if remaining_captains:
+        if len(teams_missing_captain) == len(remaining_captains):
+            # If the number of teams missing a captain equals the number of remaining captains
+            if not teams_with_captain[current_team]:
+                # If the current team does not have a captain, they must pick one
+                print(f"\n{Fore.YELLOW}WARNING: The number of teams missing a captain ({len(teams_missing_captain)}) is equal to the number of captains remaining ({len(remaining_captains)}).{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Team {current_team} must pick a captain.{Style.RESET_ALL}")
+                
+                # Force the team to pick a captain
+                while True:
+                    pick = input("Enter the name of the captain you want to draft: ").strip()
+                    if pick in remaining_captains:
+                        teams[current_team].append(pick)
+                        remaining_players.remove(pick)
+                        remaining_captains.remove(pick)
+                        teams_with_captain[current_team] = True
+                        break
+                    else:
+                        print("Invalid captain name. Please pick a captain from the list.")
+                continue
+            else:
+                # If the current team already has a captain, they cannot pick another captain
+                print(f"\n{Fore.YELLOW}WARNING: The number of teams missing a captain ({len(teams_missing_captain)}) is equal to the number of captains remaining ({len(remaining_captains)}).{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Team {current_team} already has a captain and cannot draft another captain.{Style.RESET_ALL}")
+                print(f"{Fore.YELLOW}Teams without a captain must pick a captain first.{Style.RESET_ALL}")
+                
+        elif len(teams_missing_captain) < len(remaining_captains):
+            # If there are more captains than teams missing a captain, allow teams to pick captains freely
+            pass  # No restrictions, proceed as normal
     
     # Find all players with good chemistry links
     good_chemistry_players = []
@@ -170,16 +211,8 @@ while remaining_players:
         hates_team_text = f"{Fore.RED}(Hates {hates_team} teammates){Style.RESET_ALL}" if hates_team > 0 else ""
         print(f"{i}. {player} (Chemistry Links: {chem_score}) {hate_text} {hates_team_text}")
     
-    
     # Calculate best available players for this team
     player_scores = calculate_scores(remaining_players, teams[current_team], chem_data, player_stats, season_data)
-    
-    #CUSTOM CHECK FOR CERTAIN PLAYER STATS#
-
-    #for i in player_scores:
-        #if i[0] == "Fire Bro":
-            #print(i)
-
     
     # Sort by score (chemistry is the primary factor)
     player_scores.sort(key=lambda x: x[1], reverse=True)
@@ -206,8 +239,17 @@ while remaining_players:
         while True:
             pick = input("Enter the name of the player you want to draft: ").strip()
             if pick in remaining_players:
+                # Prevent teams with a captain from drafting another captain if the condition is met
+                if pick in remaining_captains and teams_with_captain[current_team] and len(teams_missing_captain) == len(remaining_captains):
+                    print(f"{Fore.RED}Team {current_team} already has a captain and cannot draft another captain.{Style.RESET_ALL}")
+                    print(f"{Fore.RED}Please select a non-captain player.{Style.RESET_ALL}")
+                    continue
+                
                 teams[current_team].append(pick)
                 remaining_players.remove(pick)
+                if pick in captains:
+                    teams_with_captain[current_team] = True
+                    remaining_captains.remove(pick)
                 break
             else:
                 print("Invalid player name. Please try again.")
