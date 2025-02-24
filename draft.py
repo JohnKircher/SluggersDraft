@@ -15,14 +15,14 @@ chem_data['Hate'] = chem_data['Hate'].apply(lambda x: ast.literal_eval(x) if isi
 
 # Hardcoded team names and initial picks
 teams = {
-    "Team BenR": ["Donkey Kong", "Baby DK"],
-    "Team Julian": ["Bowser", "Baby Luigi"],
-    "Team Tom": ["Wario", "Hammer Bro"],
-    "Team Harry": ["Birdo", "Baby Peach"],
-    "Team Kircher": ["Fire Bro", "Bowser Jr"],
-    "Team BenT": ["Yoshi", "King K Rool"],
-    "Team Carbone": ["Funky Kong", "Peach"],
-    "Team Jmo": ["Petey Piranha", "Mario"]
+    "BenR": [],
+    "Julian": [],
+    "Tom": [],
+    "Harry": [],
+    "Kircher": [],
+    "BenT": [],
+    "Carbone": [],
+    "Jmo": []
 }
 
 # Calculate average stats for missing players
@@ -127,11 +127,16 @@ for player in missing_players:
 
 # Initialize draft order
 draft_order = list(teams.keys())
+counter = 0
 
 while remaining_players:
     current_team = draft_order.pop(0)  # Get the next team in the draft order
     draft_order.append(current_team)  # Add the team back to the end of the draft order
-    
+    counter += 1
+    print(draft_order)
+    if counter % 8 == 0:
+        draft_order = list(reversed(draft_order))
+        
     # Display current roster with hate relationships
     print(f"\nTeam {current_team}'s current roster:")
     for i, player in enumerate(teams[current_team], start=1):
@@ -165,8 +170,16 @@ while remaining_players:
         hates_team_text = f"{Fore.RED}(Hates {hates_team} teammates){Style.RESET_ALL}" if hates_team > 0 else ""
         print(f"{i}. {player} (Chemistry Links: {chem_score}) {hate_text} {hates_team_text}")
     
+    
     # Calculate best available players for this team
     player_scores = calculate_scores(remaining_players, teams[current_team], chem_data, player_stats, season_data)
+    
+    #CUSTOM CHECK FOR CERTAIN PLAYER STATS#
+
+    #for i in player_scores:
+        #if i[0] == "Fire Bro":
+            #print(i)
+
     
     # Sort by score (chemistry is the primary factor)
     player_scores.sort(key=lambda x: x[1], reverse=True)
@@ -185,6 +198,7 @@ while remaining_players:
             hates_team = check_hate(player, teams[current_team], chem_data)
         hate_text = f"{Fore.RED}(Hated by {hate_count}){Style.RESET_ALL}" if hate_count > 0 else ""
         hates_team_text = f"{Fore.RED}(Hates {hates_team} teammates){Style.RESET_ALL}" if hates_team > 0 else ""
+        total_score = round(total_score, 2)
         print(f"{i}. {player} (Score: {total_score}, Chemistry Links: {chem_score}) {hate_text} {hates_team_text}")
     
     # User makes a pick
