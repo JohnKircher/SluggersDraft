@@ -25,7 +25,6 @@ def min_max_scale_scores(scores):
 
     return scaled_scores
 
-# Chemistry metric function
 def calculate_chemistry_metric(current_team, player, remaining_players, df, k=0.9, x0=4.5, neg_chem_weight=.5):
     # Generate available players
     available_players = remaining_players
@@ -51,7 +50,6 @@ def calculate_chemistry_metric(current_team, player, remaining_players, df, k=0.
     # Calculate the number of unique chemistry connections the player would add to the current team
     unique_chem = len(set(player_row['Chemistry']) - set([item for string in current_team for item in df.loc[df['Character Name'] == string, 'Chemistry'].sum()]))
 
-
     # Calculate the chemistry metric
     chemistry_metric = (
         weight_current_team * (positive_chem_current_team - negative_chem_current_team) +
@@ -63,7 +61,6 @@ def calculate_chemistry_metric(current_team, player, remaining_players, df, k=0.
     chemistry_metric = round(chemistry_metric, 2)
 
     return chemistry_metric
-
 
 def create_player_tuples(scores):
     # Define the metrics to extract
@@ -81,3 +78,27 @@ def create_player_tuples(scores):
         player_tuples.append((player, total_score, *values))
 
     return player_tuples
+
+def get_chemistry_links(player, team_players, chem_data):
+    """
+    Returns a list of players on the team that the given player has chemistry with.
+    """
+    player_chem_data = chem_data.loc[chem_data['Character Name'] == player]
+    if not player_chem_data.empty:
+        chemistry_list = player_chem_data['Chemistry'].values[0] if player_chem_data['Chemistry'].values[0] else []
+        # Find intersection between chemistry list and team players
+        chemistry_links = [team_player for team_player in team_players if team_player in chemistry_list]
+        return chemistry_links
+    return []
+
+def get_hate_links(player, team_players, chem_data):
+    """
+    Returns a list of players on the team that the given player hates or is hated by.
+    """
+    player_chem_data = chem_data.loc[chem_data['Character Name'] == player]
+    if not player_chem_data.empty:
+        hate_list = player_chem_data['Hate'].values[0] if player_chem_data['Hate'].values[0] else []
+        # Find intersection between hate list and team players
+        hate_links = [team_player for team_player in team_players if team_player in hate_list]
+        return hate_links
+    return []

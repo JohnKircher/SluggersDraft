@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mario Super Sluggers Draft</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Mario Super Sluggers Draft</h1>
+    <h2>Select a Team to Start Drafting</h2>
+    <div class="teams">
+        {% for team in teams %}
+            <a href="{{ url_for('draft', team=team) }}" class="team-button">{{ team }}</a>
+        {% endfor %}
+    </div>
+</body>
+</html>
