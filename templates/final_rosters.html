@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Rosters</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Final Rosters</h1>
+    
+    <!-- Display all teams' rosters -->
+    {% for team, roster in teams.items() %}
+        <h2>Team {{ team }}</h2>
+        <ul>
+            {% for player in roster %}
+                <li>{{ player }}</li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+    
+    <!-- Reset Draft Button -->
+    <form method="POST" action="{{ url_for('reset_draft_route') }}">
+        <button type="submit" class="reset-button">Reset Draft</button>
+    </form>
+    
+    <a href="{{ url_for('index') }}" class="back-button">Back to Teams</a>
+</body>
+</html>

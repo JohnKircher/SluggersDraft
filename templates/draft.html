@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Draft - {{ team }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body>
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% endwith %}
+
+    <h1>Draft for Team {{ team }}</h1>
+    
+    <!-- Current Roster -->
+    <h2>Current Roster</h2>
+    <ul>
+        {% for player in roster %}
+            <li>
+                {{ player }}
+                {% set chemistry_links = get_chemistry_links(player, roster, chem_data) %}
+                {% if chemistry_links %}
+                    <span class="chemistry">(Chemistry with: {{ chemistry_links|join(', ') }})</span>
+                {% endif %}
+                {% set hate_links = get_hate_links(player, roster, chem_data) %}
+                {% if hate_links %}
+                    <span class="hate">(Hates: {{ hate_links|join(', ') }})</span>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+    
+    <!-- Captain Selection Warning -->
+    {% if must_pick_captain %}
+    {% if not teams_with_captain[team] %}
+        <div class="warning">
+            <p>⚠️ You must pick a captain! Remaining captains: {{ remaining_captains|join(', ') }}</p>
+        </div>
+    {% else %}
+        <div class="warning">
+            <p>⚠️ You already have a captain and cannot pick another.</p>
+        </div>
+    {% endif %}
+    {% endif %}
+
+    
+    
+    <!-- Top 5 Recommendations -->
+    <h2>Top 5 Recommendations</h2>
+    <form method="POST">
+        <div class="players">
+            {% for player in players %}
+                <button type="submit" name="pick" value="{{ player[0] }}" class="player-button">
+                    {{ player[0] }} (Score: {{ player[1] }})
+                </button>
+            {% endfor %}
+        </div>
+    </form>
+    
+    <!-- Outfielder Recommendations -->
+    {% if outfield_recommendations %}
+    <h2>Outfielder Recommendations</h2>
+    <div class="outfielders">
+        <form method="POST">
+            {% for player, speed in outfield_recommendations %}
+                <button type="submit" name="pick" value="{{ player }}" class="player-button">
+                    {{ player }} (Speed: {{ speed }})
+                </button>
+            {% endfor %}
+        </form>
+    </div>
+    {% endif %}
+    
+    <!-- Chemistry Links Section -->
+    <h2>Players with Chemistry Links</h2>
+    <div class="chemistry-links">
+        <form method="POST">
+            {% for player in remaining_players %}
+                {% set chemistry_links = get_chemistry_links(player, roster, chem_data) %}
+                {% if chemistry_links %}
+                    <button type="submit" name="pick" value="{{ player }}" class="player-button chemistry">
+                        {{ player }} (Chemistry with: {{ chemistry_links|join(', ') }})
+                    </button>
+                {% endif %}
+            {% endfor %}
+        </form>
+    </div>
+    
+    <!-- Collapsible Menu for All Players -->
+    <details>
+        <summary>Show All Available Players</summary>
+        <div class="all-players">
+            <form method="POST">
+                {% for player in remaining_players %}
+                    {% set chemistry_links = get_chemistry_links(player, roster, chem_data) %}
+                    {% set hate_links = get_hate_links(player, roster, chem_data) %}
+                    <button type="submit" name="pick" value="{{ player }}" class="player-button {% if chemistry_links %}chemistry{% endif %} {% if hate_links %}hate{% endif %}">
+                        {{ player }}
+                        {% if chemistry_links %}
+                            <span class="chemistry">(Chemistry with: {{ chemistry_links|join(', ') }})</span>
+                        {% endif %}
+                        {% if hate_links %}
+                            <span class="hate">(Hates: {{ hate_links|join(', ') }})</span>
+                        {% endif %}
+                    </button>
+                {% endfor %}
+            </form>
+        </div>
+    </details>
+    
+    <!-- Designate Center Fielder -->
+    <h2>Designate Center Fielder (CF)</h2>
+    <form method="POST" action="{{ url_for('designate_cf', team=team) }}">
+        <select name="cf_player">
+            {% for player in roster %}
+                <option value="{{ player }}">{{ player }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="cf-button">Designate CF</button>
+    </form>
+    
+    <a href="{{ url_for('index') }}" class="back-button">Back to Teams</a>
+</body>
+</html>

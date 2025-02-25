@@ -1,0 +1,165 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+}
+
+h1, h2 {
+    color: #333;
+}
+
+.teams, .players {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.team-button, .player-button, .back-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.team-button:hover, .player-button:hover, .back-button:hover {
+    background-color: #0056b3;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+li {
+    background-color: #fff;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Collapsible Menu */
+details {
+    margin: 20px 0;
+}
+
+summary {
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.all-players {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Warning Message */
+.warning {
+    background-color: #ffcc00;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+/* Designate CF Section */
+.cf-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.cf-button:hover {
+    background-color: #218838;
+}
+
+/* Player Buttons */
+.player-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 5px;
+    font-size: 16px;
+}
+
+.player-button:hover {
+    background-color: #0056b3;
+}
+
+/* Chemistry Links */
+.player-button.chemistry {
+    background-color: #28a745; /* Green for chemistry */
+}
+
+.player-button.chemistry:hover {
+    background-color: #218838;
+}
+
+/* Hate Links */
+.player-button.hate {
+    background-color: #dc3545; /* Red for hate */
+}
+
+.player-button.hate:hover {
+    background-color: #c82333;
+}
+
+/* Warning Message */
+.warning {
+    background-color: #ffcc00;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 10px 0;
+    font-weight: bold;
+    color: #000;
+}
+
+/* Flash Messages */
+.flash-messages {
+    margin: 10px 0;
+}
+
+.flash {
+    padding: 10px;
+    border-radius: 5px;
+    margin: 5px 0;
+    font-weight: bold;
+}
+
+.flash.warning {
+    background-color: #ffcc00;
+    color: #000;
+}
+
+.flash.error {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.reset-button {
+    background-color: #dc3545; /* Red color for reset button */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.reset-button:hover {
+    background-color: #c82333; /* Darker red on hover */
+}

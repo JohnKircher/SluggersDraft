@@ -1,0 +1,208 @@
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+import pandas as pd
+from utils import min_max_scale_scores, calculate_chemistry_metric, create_player_tuples, get_chemistry_links, get_hate_links
+
+app = Flask(__name__)
+app.secret_key = 'your_secret_key'  # Required for session management
+
+# Load data
+chem_data = pd.read_excel('data/sortedmasterchem.xlsx')
+player_stats = pd.read_excel('data/Player Statistics.xlsx')
+season_data = pd.read_excel('data/Season Data.xlsx')
+
+# Hardcoded team names and initial picks
+teams = {
+    "BenR": [],
+    "Julian": [],
+    "Tom": [],
+    "Harry": [],
+    "Kircher": [],
+    "BenT": [],
+    "Carbone": [],
+    "Jmo": []
+}
+
+# List of captains
+captains = ["Mario", "Luigi", "Peach", "Daisy", "Yoshi", "Birdo", "Wario", "Waluigi", "Donkey Kong", "Diddy Kong", "Bowser", "Bowser Jr"]
+
+# Initialize a dictionary to track if each team has a captain
+teams_with_captain = {team: False for team in teams}
+
+# Initialize draft order
+draft_order = list(teams.keys())
+remaining_players = list(player_stats['Character'])
+remaining_captains = [player for player in remaining_players if player in captains]
+
+# Function to reset the draft
+def reset_draft():
+    global teams, teams_with_captain, draft_order, remaining_players, remaining_captains
+    teams = {team: [] for team in teams}  # Reset all teams' rosters
+    teams_with_captain = {team: False for team in teams}  # Reset captain status
+    draft_order = list(teams.keys())  # Reset draft order
+    remaining_players = list(player_stats['Character'])  # Reset remaining players
+    remaining_captains = [player for player in remaining_players if player in captains]  # Reset remaining captains
+
+# Function to calculate player scores
+def calculate_scores(players, team_players, chem_data, player_stats, season_data):
+    # If there are no remaining players, return an empty list
+    if not players:
+        return []
+
+    scores = {}
+    for player in players:
+        chem_score = calculate_chemistry_metric(team_players, player, players, chem_data)
+        stats = player_stats.loc[player_stats['Character'] == player]
+        season_stats = season_data.loc[season_data['First Name'] == player]
+        
+        # Use 25% of average stats if player is missing in season_data
+        if season_stats.empty:
+            slugging = season_data['Slugging Percentage'].mean() * 0.25
+            home_runs = season_data['Home Runs'].mean() * 0.25
+        else:
+            slugging = season_stats['Slugging Percentage'].mean()
+            home_runs = season_stats['Home Runs'].sum()
+        
+        if stats.empty:
+            charge_hit_power = player_stats['Charge Hit Power'].mean() * 0.25
+            slap_hit_power = player_stats['Slap Hit Power'].mean() * 0.25
+            speed = player_stats['Speed'].mean() * 0.25
+            pitching_stamina = player_stats['Pitching Stamina'].mean() * 0.25
+        else:
+            charge_hit_power = stats['Charge Hit Power'].values[0]
+            slap_hit_power = stats['Slap Hit Power'].values[0]
+            speed = stats['Speed'].values[0]
+            pitching_stamina = stats['Pitching Stamina'].values[0]
+        
+        scores[player] = {
+            'chem_score': chem_score,
+            'slugging': slugging,
+            'charge_hit_power': charge_hit_power,
+            'slap_hit_power': slap_hit_power,
+            'speed': speed,
+            'home_runs': home_runs,
+            'pitching_stamina': pitching_stamina,
+        }
+    
+    scores = min_max_scale_scores(scores)
+    final_scores = create_player_tuples(scores)
+    return final_scores
+
+# Function to recommend outfielders
+def recommend_outfielders(team_players, remaining_players, chem_data, player_stats, cf_player=None):
+    # Filter players with speed >= 50
+    fast_players = [player for player in remaining_players if player_stats.loc[player_stats['Character'] == player, 'Speed'].values[0] >= 50]
+    
+    if cf_player:
+        # If a CF is designated, filter players with chemistry links to the CF
+        players_with_chem_to_cf = []
+        for player in fast_players:
+            chemistry_links = get_chemistry_links(player, [cf_player], chem_data)
+            if chemistry_links:  # If the player has chemistry with the CF
+                speed = player_stats.loc[player_stats['Character'] == player, 'Speed'].values[0]
+                players_with_chem_to_cf.append((player, speed))
+        
+        # Sort players by speed (highest first)
+        players_with_chem_to_cf.sort(key=lambda x: x[1], reverse=True)
+        return players_with_chem_to_cf[:5]
+    else:
+        # If no CF is designated, recommend based on speed only
+        fast_players_sorted = sorted(fast_players, key=lambda x: player_stats.loc[player_stats['Character'] == x, 'Speed'].values[0], reverse=True)
+        return [(player, player_stats.loc[player_stats['Character'] == player, 'Speed'].values[0]) for player in fast_players_sorted[:5]]
+
+@app.route('/')
+def index():
+    return render_template('index.html', teams=teams)
+
+@app.route('/draft/<team>', methods=['GET', 'POST'])
+def draft(team):
+    if request.method == 'POST':
+        pick = request.form['pick']
+        
+        # Check if the team is required to pick a captain
+        teams_missing_captain = [team for team, has_captain in teams_with_captain.items() if not has_captain]
+        must_pick_captain = len(teams_missing_captain) == len(remaining_captains)
+        
+        # Validate the pick
+        if must_pick_captain:
+            if not teams_with_captain[team] and pick not in remaining_captains:
+                flash("You must pick a captain!", "warning")
+                return redirect(url_for('draft', team=team))
+            elif teams_with_captain[team] and pick in remaining_captains:
+                flash("You already have a captain and cannot pick another!", "warning")
+                return redirect(url_for('draft', team=team))
+        
+        # Handle the pick
+        teams[team].append(pick)
+        remaining_players.remove(pick)
+        if pick in captains:
+            teams_with_captain[team] = True
+            remaining_captains.remove(pick)
+        
+        # Determine the next team for the snake draft
+        current_index = draft_order.index(team)
+        if current_index == len(draft_order) - 1:
+            # Reverse the draft order for the next round
+            draft_order.reverse()
+            next_team = team  # The same team picks again
+        else:
+            next_team = draft_order[current_index + 1]
+        
+        # If no players are left, redirect to final rosters
+        if not remaining_players:
+            return redirect(url_for('final_rosters'))
+        
+        return redirect(url_for('draft', team=next_team))
+    
+    # Calculate player scores for recommendations
+    player_scores = calculate_scores(remaining_players, teams[team], chem_data, player_stats, season_data)
+    player_scores.sort(key=lambda x: x[1], reverse=True)
+    
+    # Check if the team needs to pick a captain
+    teams_missing_captain = [team for team, has_captain in teams_with_captain.items() if not has_captain]
+    must_pick_captain = len(teams_missing_captain) == len(remaining_captains)
+    
+    # Check if the team needs outfielders
+    cf_player = session.get('cf_player', None)
+    outfield_recommendations = []
+    if not any(player in teams[team] for player in ['RF', 'CF', 'LF']):
+        outfield_recommendations = recommend_outfielders(teams[team], remaining_players, chem_data, player_stats, cf_player)
+    
+    # Pass get_chemistry_links, get_hate_links, and chem_data to the template
+    return render_template(
+        'draft.html',
+        team=team,
+        players=player_scores[:5],
+        roster=teams[team],
+        must_pick_captain=must_pick_captain,
+        outfield_recommendations=outfield_recommendations,
+        get_chemistry_links=get_chemistry_links,
+        get_hate_links=get_hate_links,
+        chem_data=chem_data,  # Pass chem_data to the template
+        remaining_players=remaining_players,  # Pass remaining players for the collapsible menu
+        remaining_captains=remaining_captains,  # Pass remaining captains for the warning
+        teams_with_captain=teams_with_captain  # Pass teams_with_captain to the template
+    )
+
+
+@app.route('/roster/<team>')
+def roster(team):
+    return render_template('roster.html', team=team, roster=teams[team])
+
+@app.route('/final_rosters')
+def final_rosters():
+    return render_template('final_rosters.html', teams=teams)
+
+@app.route('/reset_draft', methods=['POST'])
+def reset_draft_route():
+    reset_draft()
+    flash("Draft has been reset!", "success")
+    return redirect(url_for('index'))
+
+@app.route('/designate_cf/<team>', methods=['POST'])
+def designate_cf(team):
+    cf_player = request.form['cf_player']
+    session['cf_player'] = cf_player  # Store the CF in the session
+    return redirect(url_for('draft', team=team))
+
+if __name__ == '__main__':
+    app.run(debug=True)
