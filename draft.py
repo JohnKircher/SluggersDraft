@@ -119,6 +119,82 @@ def check_hate(player, team_players, chem_data):
                 hate_count += 1
     return hate_count
 
+
+# Add this function to draft.py
+def recommend_outfielders(team_players, remaining_players, chem_data, player_stats, cf_player=None):
+    """
+    Recommends outfielders (LF and RF) based on speed and chemistry with the designated CF.
+    """
+    # Filter players with speed >= 50
+    fast_players = [player for player in remaining_players if player_stats.loc[player_stats['Character'] == player, 'Speed'].values[0] >= 50]
+    
+    if cf_player:
+        # If a CF is designated, filter players with chemistry links to the CF
+        players_with_chem_to_cf = []
+        for player in fast_players:
+            chemistry_links = get_chemistry_links(player, [cf_player], chem_data)
+            if chemistry_links:  # If the player has chemistry with the CF
+                speed = player_stats.loc[player_stats['Character'] == player, 'Speed'].values[0]
+                players_with_chem_to_cf.append((player, speed))
+        
+        # Sort players by speed (highest first)
+        players_with_chem_to_cf.sort(key=lambda x: x[1], reverse=True)
+        
+        # Display top 5 outfield recommendations
+        print(f"\nTop 5 outfield recommendations (with chemistry to {cf_player}):")
+        for i, (player, speed) in enumerate(players_with_chem_to_cf[:5], start=1):
+            print(f"{i}. {player} (Speed: {speed})")
+    else:
+        # If no CF is designated, recommend based on speed only
+        fast_players_sorted = sorted(fast_players, key=lambda x: player_stats.loc[player_stats['Character'] == x, 'Speed'].values[0], reverse=True)
+        print("\nTop 5 outfield recommendations (based on speed only):")
+        for i, player in enumerate(fast_players_sorted[:5], start=1):
+            print(f"{i}. {player} (Speed: {player_stats.loc[player_stats['Character'] == player, 'Speed'].values[0]})")
+
+def get_chemistry_links(player, team_players, chem_data):
+    """
+    Returns a list of players on the team that the given player has chemistry with.
+    """
+    player_chem_data = chem_data.loc[chem_data['Character Name'] == player]
+    if not player_chem_data.empty:
+        chemistry_list = player_chem_data['Chemistry'].values[0] if player_chem_data['Chemistry'].values[0] else []
+        # Find intersection between chemistry list and team players
+        chemistry_links = [team_player for team_player in team_players if team_player in chemistry_list]
+        return chemistry_links
+    return []
+
+def get_hate_links(player, team_players, chem_data):
+    """
+    Returns a list of players on the team that the given player hates or is hated by.
+    """
+    player_chem_data = chem_data.loc[chem_data['Character Name'] == player]
+    if not player_chem_data.empty:
+        hate_list = player_chem_data['Hate'].values[0] if player_chem_data['Hate'].values[0] else []
+        # Find intersection between hate list and team players
+        hate_links = [team_player for team_player in team_players if team_player in hate_list]
+        return hate_links
+    return []
+
+def designate_cf(team_players, remaining_players, chem_data, player_stats):
+    """
+    Allows the team to designate a Center Fielder (CF) from their current roster.
+    """
+    print("\nDesignate a Center Fielder (CF) from your current roster:")
+    for i, player in enumerate(team_players, start=1):
+        print(f"{i}. {player}")
+    
+    while True:
+        try:
+            cf_index = int(input("Enter the number of the player you want to designate as CF: ")) - 1
+            if 0 <= cf_index < len(team_players):
+                cf_player = team_players[cf_index]
+                print(f"{cf_player} has been designated as the Center Fielder (CF).")
+                return cf_player
+            else:
+                print("Invalid selection. Please enter a valid number.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+
 # Main draft loop
 remaining_players = list(player_stats['Character'])  # Use all players from Player Statistics
 remaining_captains = [player for player in remaining_players if player in captains]  # Track remaining captains
@@ -136,6 +212,7 @@ for player in missing_players:
 draft_order = list(teams.keys())
 counter = 0
 
+# Modify the main draft loop in draft.py
 while remaining_players:
     current_team = draft_order.pop(0)  # Get the next team in the draft order
     draft_order.append(current_team)  # Add the team back to the end of the draft order
@@ -145,11 +222,18 @@ while remaining_players:
         draft_order = list(reversed(draft_order))
         
     # Display current roster with hate relationships
+    # Modify the current roster display section in the main draft loop
     print(f"\nTeam {current_team}'s current roster:")
     for i, player in enumerate(teams[current_team], start=1):
-        hate_count = check_hate(player, teams[current_team], chem_data)
-        hate_text = f"{Fore.RED}(Hates {hate_count} teammates){Style.RESET_ALL}" if hate_count > 0 else ""
-        print(f"{i}. {player} {hate_text}")
+        # Get hate links for the player
+        hate_links = get_hate_links(player, teams[current_team], chem_data)
+        hate_text = f"{Fore.RED}(Hates: {', '.join(hate_links)}){Style.RESET_ALL}" if hate_links else ""
+        
+        # Get chemistry links for the player
+        chemistry_links = get_chemistry_links(player, teams[current_team], chem_data)
+        chem_text = f"{Fore.GREEN}(Chemistry with: {', '.join(chemistry_links)}){Style.RESET_ALL}" if chemistry_links else ""
+        
+        print(f"{i}. {player} {hate_text} {chem_text}")
     
     # Check if the team needs to pick a captain
     teams_missing_captain = [team for team, has_captain in teams_with_captain.items() if not has_captain]
@@ -185,6 +269,23 @@ while remaining_players:
             # If there are more captains than teams missing a captain, allow teams to pick captains freely
             pass  # No restrictions, proceed as normal
     
+    # Check if the team needs outfielders
+    # Check if the team needs outfielders
+    has_outfielders = recommend_outfielders(teams[current_team], remaining_players, chem_data, player_stats)
+    
+    # Allow the team to designate a CF if they don't have one
+    cf_player = None
+    # In the main draft loop, after designating a CF:
+    if not has_outfielders:
+        designate_cf_prompt = input("Do you want to designate a Center Fielder (CF)? (yes/no): ").strip().lower()
+        if designate_cf_prompt == 'yes':
+            cf_player = designate_cf(teams[current_team], remaining_players, chem_data, player_stats)
+            # Re-run outfield recommendations with the designated CF
+            recommend_outfielders(teams[current_team], remaining_players, chem_data, player_stats, cf_player)
+        else:
+            # If no CF is designated, recommend based on speed only
+            recommend_outfielders(teams[current_team], remaining_players, chem_data, player_stats)
+    
     # Find all players with good chemistry links
     good_chemistry_players = []
     for player in remaining_players:
@@ -204,12 +305,19 @@ while remaining_players:
                 good_chemistry_players.append((player, chem_score, hate_count))
     
     # Display good chemistry links
+    # Modify the good chemistry links display section in the main draft loop
+    # Modify the good chemistry links display section in the main draft loop
     print(f"\nTeam {current_team}, players with good chemistry links:")
     for i, (player, chem_score, hate_count) in enumerate(good_chemistry_players, start=1):
-        hate_text = f"{Fore.RED}(Hated by {hate_count}){Style.RESET_ALL}" if hate_count > 0 else ""
-        hates_team = check_hate(player, teams[current_team], chem_data)
-        hates_team_text = f"{Fore.RED}(Hates {hates_team} teammates){Style.RESET_ALL}" if hates_team > 0 else ""
-        print(f"{i}. {player} (Chemistry Links: {chem_score}) {hate_text} {hates_team_text}")
+        # Get hate links for the player
+        hate_links = get_hate_links(player, teams[current_team], chem_data)
+        hate_text = f"{Fore.RED}(Hates: {', '.join(hate_links)}){Style.RESET_ALL}" if hate_links else ""
+        
+        # Get chemistry links for the player
+        chemistry_links = get_chemistry_links(player, teams[current_team], chem_data)
+        chem_text = f"{Fore.GREEN}(Chemistry with: {', '.join(chemistry_links)}){Style.RESET_ALL}" if chemistry_links else ""
+        
+        print(f"{i}. {player} {chem_text} {hate_text}")
     
     # Calculate best available players for this team
     player_scores = calculate_scores(remaining_players, teams[current_team], chem_data, player_stats, season_data)
@@ -217,22 +325,19 @@ while remaining_players:
     # Sort by score (chemistry is the primary factor)
     player_scores.sort(key=lambda x: x[1], reverse=True)
     
-    # Display top 5 suggestions
+    # Modify the top 5 recommendations display section in the main draft loop
     print(f"\nTeam {current_team}, top 5 best available players:")
     for i, (player, total_score, chem_score, slugging, charge_hit_power, slap_hit_power, speed, home_runs, pitching_stamina) in enumerate(player_scores[:5], start=1):
-        hate_count = 0
-        hates_team = 0
-        player_chem_data = chem_data.loc[chem_data['Character Name'] == player]
-        if not player_chem_data.empty:
-            hate_list = player_chem_data['Hate'].values[0] if player_chem_data['Hate'].values[0] else []
-            for team_player in teams[current_team]:
-                if team_player in hate_list:
-                    hate_count += 1
-            hates_team = check_hate(player, teams[current_team], chem_data)
-        hate_text = f"{Fore.RED}(Hated by {hate_count}){Style.RESET_ALL}" if hate_count > 0 else ""
-        hates_team_text = f"{Fore.RED}(Hates {hates_team} teammates){Style.RESET_ALL}" if hates_team > 0 else ""
+        # Get hate links for the player
+        hate_links = get_hate_links(player, teams[current_team], chem_data)
+        hate_text = f"{Fore.RED}(Hates: {', '.join(hate_links)}){Style.RESET_ALL}" if hate_links else ""
+        
+        # Get chemistry links for the player
+        chemistry_links = get_chemistry_links(player, teams[current_team], chem_data)
+        chem_text = f"{Fore.GREEN}(Chemistry with: {', '.join(chemistry_links)}){Style.RESET_ALL}" if chemistry_links else ""
+        
         total_score = round(total_score, 2)
-        print(f"{i}. {player} (Score: {total_score}, Chemistry Links: {chem_score}) {hate_text} {hates_team_text}")
+        print(f"{i}. {player} (Score: {total_score}) {chem_text} {hate_text}")
     
     # User makes a pick
     if player_scores:  # Ensure there are players to pick
@@ -256,6 +361,7 @@ while remaining_players:
     else:
         print("No valid players to draft. Ending draft.")
         break
+
 
 print("\nDraft complete!")
 print("\nFinal rosters:")
