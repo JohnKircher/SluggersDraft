@@ -91,7 +91,7 @@ The **Mario Super Sluggers Draft Tool** is a web application designed to facilit
 
 - Open the application in your browser.
 - Select a team to start drafting.
-- ***If you want to change the team names: edit lines 15-22 in app.py***
+- ***If you want to change the team names: edit the teams dictionary in app.py***
 
 ### Draft Players:
 
