@@ -66,14 +66,14 @@
         </div>
     </form>
     
-    <!-- Outfielder Recommendations -->
+   <!-- Outfielder Recommendations -->
     {% if outfield_recommendations %}
     <h2>Outfielder Recommendations</h2>
     <div class="outfielders">
         <form method="POST">
-            {% for player, speed in outfield_recommendations %}
+            {% for player, speed, chem_text in outfield_recommendations %}
                 <button type="submit" name="pick" value="{{ player }}" class="player-button">
-                    {{ player }} (Speed: {{ speed }})
+                    {{ player }} (Speed: {{ speed }}) {{ chem_text }}
                 </button>
             {% endfor %}
         </form>

@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import pandas as pd
+import ast
 from utils import min_max_scale_scores, calculate_chemistry_metric, create_player_tuples, get_chemistry_links, get_hate_links
+from openpyxl import Workbook
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Required for session management
@@ -9,6 +11,10 @@ app.secret_key = 'your_secret_key'  # Required for session management
 chem_data = pd.read_excel('data/sortedmasterchem.xlsx')
 player_stats = pd.read_excel('data/Player Statistics.xlsx')
 season_data = pd.read_excel('data/Season Data.xlsx')
+
+# Convert Chemistry and Hate to python list instead of string
+chem_data['Chemistry'] = chem_data['Chemistry'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else x)
+chem_data['Hate'] = chem_data['Hate'].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else x)
 
 # Hardcoded team names and initial picks
 teams = {
@@ -87,27 +93,49 @@ def calculate_scores(players, team_players, chem_data, player_stats, season_data
     final_scores = create_player_tuples(scores)
     return final_scores
 
-# Function to recommend outfielders
+# Updated Function to recommend outfielders
 def recommend_outfielders(team_players, remaining_players, chem_data, player_stats, cf_player=None):
-    # Filter players with speed >= 50
-    fast_players = [player for player in remaining_players if player_stats.loc[player_stats['Character'] == player, 'Speed'].values[0] >= 50]
-    
+    """
+    Recommends outfielders (LF and RF) based on speed and chemistry with the designated CF.
+    - If a CF is designated, players with chemistry and speed >= 50 are shown first, followed by the fastest players.
+    - If no CF is designated, only the top 10 fastest players are shown.
+    """
+    # Get all players sorted by speed (highest first)
+    all_players_sorted = sorted(
+        remaining_players,
+        key=lambda x: player_stats.loc[player_stats['Character'] == x, 'Speed'].values[0],
+        reverse=True
+    )
+
+    # If a CF is designated, prioritize players with chemistry and speed >= 50
     if cf_player:
-        # If a CF is designated, filter players with chemistry links to the CF
-        players_with_chem_to_cf = []
-        for player in fast_players:
-            chemistry_links = get_chemistry_links(player, [cf_player], chem_data)
-            if chemistry_links:  # If the player has chemistry with the CF
-                speed = player_stats.loc[player_stats['Character'] == player, 'Speed'].values[0]
-                players_with_chem_to_cf.append((player, speed))
-        
-        # Sort players by speed (highest first)
-        players_with_chem_to_cf.sort(key=lambda x: x[1], reverse=True)
-        return players_with_chem_to_cf[:5]
+        # Get players with chemistry to the CF and speed >= 50
+        players_with_chem = []
+        for player in all_players_sorted:
+            speed = player_stats.loc[player_stats['Character'] == player, 'Speed'].values[0]
+            if speed >= 50:  # Only consider players with speed >= 50
+                chemistry_links = get_chemistry_links(player, [cf_player], chem_data)
+                if chemistry_links:
+                    players_with_chem.append((player, speed, f"(Chemistry with {cf_player})"))
+
+        # Get the remaining players (without chemistry or speed < 50) sorted by speed
+        players_without_chem = [
+            (player, player_stats.loc[player_stats['Character'] == player, 'Speed'].values[0], "")
+            for player in all_players_sorted
+            if player not in [p[0] for p in players_with_chem]  # Exclude players already in the chemistry list
+        ]
+
+        # Combine the two lists: chemistry players first, then the rest
+        recommendations = players_with_chem + players_without_chem
     else:
-        # If no CF is designated, recommend based on speed only
-        fast_players_sorted = sorted(fast_players, key=lambda x: player_stats.loc[player_stats['Character'] == x, 'Speed'].values[0], reverse=True)
-        return [(player, player_stats.loc[player_stats['Character'] == player, 'Speed'].values[0]) for player in fast_players_sorted[:5]]
+        # If no CF is designated, just return the top 10 players with their speed
+        recommendations = [
+            (player, player_stats.loc[player_stats['Character'] == player, 'Speed'].values[0], "")
+            for player in all_players_sorted[:10]
+        ]
+
+    # Return the top 10 players
+    return recommendations[:10]
 
 @app.route('/')
 def index():
@@ -153,6 +181,9 @@ def draft(team):
         
         return redirect(url_for('draft', team=next_team))
     
+    # Get the CF designation for the current team
+    cf_player = session.get(f'cf_player_{team}', None)
+    
     # Calculate player scores for recommendations
     player_scores = calculate_scores(remaining_players, teams[team], chem_data, player_stats, season_data)
     player_scores.sort(key=lambda x: x[1], reverse=True)
@@ -162,7 +193,6 @@ def draft(team):
     must_pick_captain = len(teams_missing_captain) == len(remaining_captains)
     
     # Check if the team needs outfielders
-    cf_player = session.get('cf_player', None)
     outfield_recommendations = []
     if not any(player in teams[team] for player in ['RF', 'CF', 'LF']):
         outfield_recommendations = recommend_outfielders(teams[team], remaining_players, chem_data, player_stats, cf_player)
@@ -183,13 +213,15 @@ def draft(team):
         teams_with_captain=teams_with_captain  # Pass teams_with_captain to the template
     )
 
-
 @app.route('/roster/<team>')
 def roster(team):
     return render_template('roster.html', team=team, roster=teams[team])
 
 @app.route('/final_rosters')
 def final_rosters():
+    # Export the draft results to an Excel file
+    export_draft_results(teams)
+    
     return render_template('final_rosters.html', teams=teams)
 
 @app.route('/reset_draft', methods=['POST'])
@@ -201,8 +233,31 @@ def reset_draft_route():
 @app.route('/designate_cf/<team>', methods=['POST'])
 def designate_cf(team):
     cf_player = request.form['cf_player']
-    session['cf_player'] = cf_player  # Store the CF in the session
+    session[f'cf_player_{team}'] = cf_player  # Store the CF in the session for the current team
     return redirect(url_for('draft', team=team))
+
+def export_draft_results(teams, filename='draft_results.xlsx'):
+    # Create a dictionary to store the picks for each round
+    draft_results = {}
+    
+    # Determine the maximum number of picks made by any team
+    max_picks = max(len(team) for team in teams.values())
+    
+    # Iterate through each round
+    for round_num in range(1, max_picks + 1):
+        round_picks = {}
+        for team, players in teams.items():
+            if len(players) >= round_num:
+                round_picks[team] = players[round_num - 1]
+            else:
+                round_picks[team] = None  # No pick made in this round
+        draft_results[f'Round {round_num}'] = round_picks
+    
+    # Convert the dictionary to a DataFrame
+    df = pd.DataFrame(draft_results)
+    
+    # Export the DataFrame to an Excel file
+    df.to_excel(filename, index=True)
 
 if __name__ == '__main__':
     app.run(debug=True)
