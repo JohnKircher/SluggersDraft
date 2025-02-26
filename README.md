@@ -58,8 +58,8 @@ The **Mario Super Sluggers Draft Tool** is a web application designed to facilit
 1. **Clone the Repository**:
 
    ```bash
-   git clone https://github.com/your-username/mario-super-sluggers-draft-tool.git
-   cd mario-super-sluggers-draft-tool
+   git clone https://github.com/JohnKircher/SluggersDraft.git
+   cd SluggersDraft
    ```
 
 2. **Set Up a Virtual Environment** (Optional but Recommended):
