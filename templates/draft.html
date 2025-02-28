@@ -26,14 +26,27 @@
     <ul>
         {% for player in roster %}
             <li>
-                {{ player }}
+                <!-- Liked Players (Chemistry) -->
                 {% set chemistry_links = get_chemistry_links(player, roster, chem_data) %}
                 {% if chemistry_links %}
-                    <span class="chemistry">(Chemistry with: {{ chemistry_links|join(', ') }})</span>
+                    <span class="chemistry-links">
+                        {% for link in chemistry_links %}
+                            <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="chemistry-image">
+                        {% endfor %}
+                    </span>
                 {% endif %}
+
+                <!-- Main Player Image -->
+                <img src="{{ url_for('static', filename='images/' + player + '.png') }}" alt="{{ player }}" class="player-image">
+
+                <!-- Hated Players -->
                 {% set hate_links = get_hate_links(player, roster, chem_data) %}
                 {% if hate_links %}
-                    <span class="hate">(Hates: {{ hate_links|join(', ') }})</span>
+                    <span class="hate-links">
+                        {% for link in hate_links %}
+                            <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="hate-image">
+                        {% endfor %}
+                    </span>
                 {% endif %}
             </li>
         {% endfor %}
@@ -52,48 +65,80 @@
     {% endif %}
     {% endif %}
 
-    
-    
     <!-- Top 5 Recommendations -->
     <h2>Top 5 Recommendations</h2>
     <form method="POST">
         <div class="players">
             {% for player in players %}
-                <button type="submit" name="pick" value="{{ player[0] }}" class="player-button">
-                    {{ player[0] }} (Score: {{ player[1] }})
+                {% set chemistry_links = get_chemistry_links(player[0], roster, chem_data) %}
+                {% set hate_links = get_hate_links(player[0], roster, chem_data) %}
+                <button type="submit" name="pick" value="{{ player[0] }}" class="player-button {% if chemistry_links and hate_links %}both{% elif chemistry_links %}chemistry{% elif hate_links %}hate{% endif %}">
+                    <!-- Liked Players (Chemistry) -->
+                    {% if chemistry_links %}
+                        <span class="chemistry-links">
+                            {% for link in chemistry_links %}
+                                <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="chemistry-image">
+                            {% endfor %}
+                        </span>
+                    {% endif %}
+
+                    <!-- Main Player Image -->
+                    <img src="{{ url_for('static', filename='images/' + player[0] + '.png') }}" alt="{{ player[0] }}" class="player-image">
+
+                    <!-- Hated Players -->
+                    {% if hate_links %}
+                        <span class="hate-links">
+                            {% for link in hate_links %}
+                                <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="hate-image">
+                            {% endfor %}
+                        </span>
+                    {% endif %}
+
+                    <span class="score">(Score: {{ player[1] }})</span>
                 </button>
             {% endfor %}
         </div>
     </form>
     
-   <!-- Outfielder Recommendations -->
+    <!-- Outfielder Recommendations -->
     {% if outfield_recommendations %}
     <h2>Outfielder Recommendations</h2>
     <div class="outfielders">
         <form method="POST">
             {% for player, speed, chem_text in outfield_recommendations %}
-                <button type="submit" name="pick" value="{{ player }}" class="player-button">
-                    {{ player }} (Speed: {{ speed }}) {{ chem_text }}
+                {% set chemistry_links = get_chemistry_links(player, roster, chem_data) %}
+                {% set hate_links = get_hate_links(player, roster, chem_data) %}
+                <button type="submit" name="pick" value="{{ player }}" class="player-button {% if chemistry_links and hate_links %}both{% elif chemistry_links %}chemistry{% elif hate_links %}hate{% endif %}">
+                    <!-- Liked Players (Chemistry) -->
+                    {% if chemistry_links %}
+                        <span class="chemistry-links">
+                            {% for link in chemistry_links %}
+                                <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="chemistry-image">
+                            {% endfor %}
+                        </span>
+                    {% endif %}
+
+                    <!-- Main Player Image -->
+                    <img src="{{ url_for('static', filename='images/' + player + '.png') }}" alt="{{ player }}" class="player-image">
+
+                    <!-- Hated Players -->
+                    {% if hate_links %}
+                        <span class="hate-links">
+                            {% for link in hate_links %}
+                                <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="hate-image">
+                            {% endfor %}
+                        </span>
+                    {% endif %}
+
+                    <span class="speed">(Speed: {{ speed }})</span>
+                    {% if chem_text %}
+                        <span class="chem-text">{{ chem_text }}</span>
+                    {% endif %}
                 </button>
             {% endfor %}
         </form>
     </div>
     {% endif %}
-    
-    <!-- Chemistry Links Section -->
-    <h2>Players with Chemistry Links</h2>
-    <div class="chemistry-links">
-        <form method="POST">
-            {% for player in remaining_players %}
-                {% set chemistry_links = get_chemistry_links(player, roster, chem_data) %}
-                {% if chemistry_links %}
-                    <button type="submit" name="pick" value="{{ player }}" class="player-button chemistry">
-                        {{ player }} (Chemistry with: {{ chemistry_links|join(', ') }})
-                    </button>
-                {% endif %}
-            {% endfor %}
-        </form>
-    </div>
     
     <!-- Collapsible Menu for All Players -->
     <details>
@@ -103,13 +148,26 @@
                 {% for player in remaining_players %}
                     {% set chemistry_links = get_chemistry_links(player, roster, chem_data) %}
                     {% set hate_links = get_hate_links(player, roster, chem_data) %}
-                    <button type="submit" name="pick" value="{{ player }}" class="player-button {% if chemistry_links %}chemistry{% endif %} {% if hate_links %}hate{% endif %}">
-                        {{ player }}
+                    <button type="submit" name="pick" value="{{ player }}" class="player-button {% if chemistry_links and hate_links %}both{% elif chemistry_links %}chemistry{% elif hate_links %}hate{% endif %}">
+                        <!-- Liked Players (Chemistry) -->
                         {% if chemistry_links %}
-                            <span class="chemistry">(Chemistry with: {{ chemistry_links|join(', ') }})</span>
+                            <span class="chemistry-links">
+                                {% for link in chemistry_links %}
+                                    <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="chemistry-image">
+                                {% endfor %}
+                            </span>
                         {% endif %}
+
+                        <!-- Main Player Image -->
+                        <img src="{{ url_for('static', filename='images/' + player + '.png') }}" alt="{{ player }}" class="player-image">
+
+                        <!-- Hated Players -->
                         {% if hate_links %}
-                            <span class="hate">(Hates: {{ hate_links|join(', ') }})</span>
+                            <span class="hate-links">
+                                {% for link in hate_links %}
+                                    <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="hate-image">
+                                {% endfor %}
+                            </span>
                         {% endif %}
                     </button>
                 {% endfor %}

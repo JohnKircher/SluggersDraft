@@ -14,7 +14,9 @@
         <h2>Team {{ team }}</h2>
         <ul>
             {% for player in roster %}
-                <li>{{ player }}</li>
+                <li>
+                    <img src="{{ url_for('static', filename='images/' + player + '.png') }}" alt="{{ player }}" class="player-image">
+                </li>
             {% endfor %}
         </ul>
     {% endfor %}

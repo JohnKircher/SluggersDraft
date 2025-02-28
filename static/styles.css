@@ -163,3 +163,92 @@ summary {
 .reset-button:hover {
     background-color: #c82333; /* Darker red on hover */
 }
+
+/* Add this to your existing CSS */
+
+.player-image {
+    width: 50px; /* Adjust as needed */
+    height: 50px; /* Adjust as needed */
+    vertical-align: middle;
+}
+
+.chemistry-image, .hate-image {
+    width: 20px; /* Adjust as needed */
+    height: 20px; /* Adjust as needed */
+    vertical-align: middle;
+    margin-left: 5px;
+}
+
+.chemistry-links, .hate-links {
+    display: inline-block;
+    margin-left: 10px;
+}
+
+.player-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+}
+
+.player-button img {
+    margin-right: 5px;
+}
+
+.score, .speed, .chem-text {
+    margin-left: 5px;
+}
+
+/* Add this to your existing CSS */
+
+.player-image {
+    width: 50px; /* Adjust as needed */
+    height: 50px; /* Adjust as needed */
+    vertical-align: middle;
+}
+
+.chemistry-image, .hate-image {
+    width: 20px; /* Adjust as needed */
+    height: 20px; /* Adjust as needed */
+    vertical-align: middle;
+    margin-left: 5px;
+}
+
+.chemistry-links {
+    display: inline-block;
+    margin-right: 10px; /* Liked players on the left */
+}
+
+.hate-links {
+    display: inline-block;
+    margin-left: 10px; /* Hated players on the right */
+}
+
+.player-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+.player-button.chemistry {
+    background-color: #28a745; /* Green for chemistry */
+}
+
+.player-button.hate {
+    background-color: #dc3545; /* Red for hate */
+}
+
+.player-button.both {
+    background: linear-gradient(90deg, #28a745 50%, #dc3545 50%); /* Half green, half red */
+}
+
+.player-button img {
+    margin-right: 5px;
+}
+
+.score, .speed, .chem-text {
+    margin-left: 5px;
+}

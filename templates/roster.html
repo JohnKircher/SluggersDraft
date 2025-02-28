@@ -10,7 +10,9 @@
     <h1>Roster for Team {{ team }}</h1>
     <ul>
         {% for player in roster %}
-            <li>{{ player }}</li>
+            <li>
+                <img src="{{ url_for('static', filename='images/' + player + '.png') }}" alt="{{ player }}" class="player-image">
+            </li>
         {% endfor %}
     </ul>
     <a href="{{ url_for('index') }}" class="back-button">Back to Teams</a>
