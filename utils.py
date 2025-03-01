@@ -37,7 +37,15 @@ def calculate_chemistry_metric(current_team, player, remaining_players, df, k=0.
     weight_unique_chem = weight_available_players
 
     # Get the player's row from the dataframe
-    player_row = df[df['Character Name'] == player].iloc[0]
+    player_row = df[df['Character Name'] == player]
+    
+    # Check if the player exists in the DataFrame
+    if player_row.empty:
+        # Handle missing player (e.g., assign a default chemistry score)
+        print(f"Warning: Player '{player}' not found in chemistry data. Assigning default chemistry score.")
+        return 0.0  # Default chemistry score for missing players
+
+    player_row = player_row.iloc[0]  # Safe to access now
 
     # Calculate positive and negative chemistry connections with the current team
     positive_chem_current_team = len(set(player_row['Chemistry']).intersection(current_team))
