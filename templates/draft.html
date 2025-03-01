@@ -31,20 +31,23 @@
                 {% if chemistry_links %}
                     <span class="chemistry-links">
                         {% for link in chemistry_links %}
-                            <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="chemistry-image">
+                            <img src="{{ url_for('static', filename='images/' + link + '.PNG') }}" alt="{{ link }}" class="chemistry-image">
+                            <script>
+                                console.log(src)
+                            </script>
                         {% endfor %}
                     </span>
                 {% endif %}
 
                 <!-- Main Player Image -->
-                <img src="{{ url_for('static', filename='images/' + player + '.png') }}" alt="{{ player }}" class="player-image">
+                <img src="{{ url_for('static', filename='images/' + player + '.PNG') }}" alt="{{ player }}" class="player-image">
 
                 <!-- Hated Players -->
                 {% set hate_links = get_hate_links(player, roster, chem_data) %}
                 {% if hate_links %}
                     <span class="hate-links">
                         {% for link in hate_links %}
-                            <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="hate-image">
+                            <img src="{{ url_for('static', filename='images/' + link + '.PNG') }}" alt="{{ link }}" class="hate-image">
                         {% endfor %}
                     </span>
                 {% endif %}
@@ -153,19 +156,19 @@
                         {% if chemistry_links %}
                             <span class="chemistry-links">
                                 {% for link in chemistry_links %}
-                                    <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="chemistry-image">
+                                    <img src="{{ url_for('static', filename='images/' + link + '.PNG') }}" alt="{{ link }}" class="chemistry-image">
                                 {% endfor %}
                             </span>
                         {% endif %}
 
                         <!-- Main Player Image -->
-                        <img src="{{ url_for('static', filename='images/' + player + '.png') }}" alt="{{ player }}" class="player-image">
+                        <img src="{{ url_for('static', filename='images/' + player + '.PNG') }}" alt="{{ player }}" class="player-image">
 
                         <!-- Hated Players -->
                         {% if hate_links %}
                             <span class="hate-links">
                                 {% for link in hate_links %}
-                                    <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="hate-image">
+                                    <img src="{{ url_for('static', filename='images/' + link + '.PNG') }}" alt="{{ link }}" class="hate-image">
                                 {% endfor %}
                             </span>
                         {% endif %}
