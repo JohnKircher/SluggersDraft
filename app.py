@@ -4,7 +4,7 @@ import ast
 from utils import min_max_scale_scores, calculate_chemistry_metric, create_player_tuples, get_chemistry_links, get_hate_links
 from openpyxl import Workbook
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = 'your_secret_key'  # Required for session management
 
 # Load data
