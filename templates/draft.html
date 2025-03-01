@@ -56,7 +56,8 @@
     </ul>
     
     <!-- Captain Selection Warning -->
-    {% if must_pick_captain %}
+    <!-- Captain Selection Warning -->
+    {% if must_pick_captain and remaining_captains %}
     {% if not teams_with_captain[team] %}
         <div class="warning">
             <p>⚠️ You must pick a captain! Remaining captains: {{ remaining_captains|join(', ') }}</p>
@@ -177,6 +178,11 @@
             </form>
         </div>
     </details>
+
+    <form method="GET" action="{{ url_for('reset_draft') }}">
+        <button type="submit" class="reset-button">Reset Draft</button>
+    </form>
+    
     
     <!-- Designate Center Fielder
     <h2>Designate Center Fielder (CF)</h2>

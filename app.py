@@ -3,6 +3,7 @@ import pandas as pd
 import ast
 from utils import min_max_scale_scores, calculate_chemistry_metric, create_player_tuples, get_chemistry_links, get_hate_links
 from openpyxl import Workbook
+import uuid
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = 'your_secret_key'  # Required for session management
@@ -18,14 +19,14 @@ chem_data['Hate'] = chem_data['Hate'].apply(lambda x: ast.literal_eval(x) if isi
 
 # Hardcoded team names and initial picks
 teams = {
+    "BenT": [],
+    "Jmo": [],
+    "Tom": [],
     "BenR": [],
     "Julian": [],
-    "Tom": [],
-    "Harry": [],
+    "HarryKirch": [],
     "Kircher": [],
-    "BenT": [],
-    "Carbone": [],
-    "Jmo": []
+    "Carbone": []
 }
 
 # List of captains
@@ -187,84 +188,107 @@ def sort_available_players(remaining_players, current_team, chem_data):
 
     return sorted_player_names
 
-@app.route('/')
-def index():
-    return render_template('index.html', teams=teams)
-
 @app.route('/draft/<team>', methods=['GET', 'POST'])
 def draft(team):
+    if 'draft_id' not in session:
+        flash("No active draft session. Please start a new draft.", "warning")
+        return redirect(url_for('index'))
+
+    # Retrieve session values
+    teams = session.get('teams', {})
+    remaining_players = session.get('remaining_players', [])
+    remaining_captains = session.get('remaining_captains', [])
+    teams_with_captain = session.get('teams_with_captain', {})
+    draft_order = session.get('draft_order', list(teams.keys()))
+
+    # Validate the team exists
+    if team not in teams:
+        flash("Invalid team selected!", "error")
+        return redirect(url_for('index'))
+
+    # Identify teams that still need a captain
+    teams_missing_captain = [t for t, has_captain in teams_with_captain.items() if not has_captain]
+    must_pick_captain = len(teams_missing_captain) == len(remaining_captains)
+
     if request.method == 'POST':
         pick = request.form['pick']
-        
-        # Check if the team is required to pick a captain
-        teams_missing_captain = [team for team, has_captain in teams_with_captain.items() if not has_captain]
-        must_pick_captain = len(teams_missing_captain) == len(remaining_captains)
-        
-        # Validate the pick
+
+        # Ensure the pick is valid
+        if pick not in remaining_players:
+            flash("Invalid pick!", "error")
+            return redirect(url_for('draft', team=team))
+
+        # **STRICT CAPTAIN SELECTION RULES**
         if must_pick_captain:
+            # If the team does not have a captain, they MUST pick a captain
             if not teams_with_captain[team] and pick not in remaining_captains:
                 flash("You must pick a captain!", "warning")
                 return redirect(url_for('draft', team=team))
+            # If the team already has a captain, they CANNOT pick another captain
             elif teams_with_captain[team] and pick in remaining_captains:
-                flash("You already have a captain and cannot pick another!", "warning")
+                flash("You already have a captain and cannot pick another!", "error")
                 return redirect(url_for('draft', team=team))
-        
-        # Handle the pick
+        else:
+            # If must_pick_captain is False, teams can pick any player (including captains)
+            pass
+
+        # Assign pick to the team
         teams[team].append(pick)
         remaining_players.remove(pick)
-        if pick in captains:
+        if pick in remaining_captains:
             teams_with_captain[team] = True
             remaining_captains.remove(pick)
-        
-        # Determine the next team for the snake draft
+
+        # Determine the next team for the draft
         current_index = draft_order.index(team)
         if current_index == len(draft_order) - 1:
-            # Reverse the draft order for the next round
-            draft_order.reverse()
-            next_team = team  # The same team picks again
+            draft_order.reverse()  # Reverse for snake draft
+            next_team = draft_order[0]  # First team in new order
         else:
             next_team = draft_order[current_index + 1]
-        
-        # If no players are left, redirect to final rosters
-        if not remaining_players:
-            return redirect(url_for('final_rosters'))
-        
+
+        # Save updated session data
+        session['teams'] = teams
+        session['remaining_players'] = remaining_players
+        session['remaining_captains'] = remaining_captains
+        session['teams_with_captain'] = teams_with_captain
+        session['draft_order'] = draft_order
+
         return redirect(url_for('draft', team=next_team))
-    
-    # Get the CF designation for the current team
-    cf_player = session.get(f'cf_player_{team}', None)
-    
-    # Calculate player scores for recommendations
-    player_scores = calculate_scores(remaining_players, teams[team], chem_data, player_stats, season_data)
-    player_scores.sort(key=lambda x: x[1], reverse=True)
-    
-    # Check if the team needs to pick a captain
-    teams_missing_captain = [team for team, has_captain in teams_with_captain.items() if not has_captain]
-    must_pick_captain = len(teams_missing_captain) == len(remaining_captains)
-    
-    # Check if the team needs outfielders
-    outfield_recommendations = []
-    if not any(player in teams[team] for player in ['RF', 'CF', 'LF']):
-        outfield_recommendations = recommend_outfielders(teams[team], remaining_players, chem_data, player_stats, cf_player)
-    
-    # Sort the remaining players based on chemistry
+
+    # Sort available players based on chemistry
     sorted_players = sort_available_players(remaining_players, teams[team], chem_data)
-    
-    # Pass get_chemistry_links, get_hate_links, and chem_data to the template
+
     return render_template(
         'draft.html',
         team=team,
-        players=player_scores[:5],
         roster=teams[team],
         must_pick_captain=must_pick_captain,
-        outfield_recommendations=outfield_recommendations,
         get_chemistry_links=get_chemistry_links,
         get_hate_links=get_hate_links,
-        chem_data=chem_data,  # Pass chem_data to the template
-        remaining_players=sorted_players,  # Pass sorted remaining players
-        remaining_captains=remaining_captains,  # Pass remaining captains for the warning
-        teams_with_captain=teams_with_captain  # Pass teams_with_captain to the template
+        chem_data=chem_data,
+        remaining_players=sorted_players,
+        remaining_captains=remaining_captains,
+        teams_with_captain=teams_with_captain
     )
+
+@app.route('/')
+def index():
+    # Generate a unique draft session if one does not exist
+    if 'draft_id' not in session:
+        session['draft_id'] = str(uuid.uuid4())  # Assign a unique session ID
+        session['teams'] = {team: [] for team in ["BenT", "Jmo", "Tom", "BenR", "Julian", "HarryKirch", "Kircher", "Carbone"]}
+        session['teams_with_captain'] = {team: False for team in session['teams']}
+        session['draft_order'] = list(session['teams'].keys())
+        session['remaining_players'] = list(player_stats['Character'])
+        session['remaining_captains'] = [p for p in session['remaining_players'] if p in captains]
+
+    return render_template('index.html', teams=session['teams'])
+
+@app.route('/reset_draft')
+def reset_draft():
+    session.pop('draft_id', None)  # Clear the session
+    return redirect(url_for('index'))
 
 @app.route('/roster/<team>')
 def roster(team):

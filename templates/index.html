@@ -14,5 +14,9 @@
             <a href="{{ url_for('draft', team=team) }}" class="team-button">{{ team }}</a>
         {% endfor %}
     </div>
+
+    <form method="GET" action="{{ url_for('reset_draft') }}">
+        <button type="submit" class="reset-button">Start New Draft</button>
+    </form>
 </body>
 </html>

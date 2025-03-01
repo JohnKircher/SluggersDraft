@@ -22,7 +22,7 @@
     {% endfor %}
     
     <!-- Reset Draft Button -->
-    <form method="POST" action="{{ url_for('reset_draft_route') }}">
+    <form method="GET" action="{{ url_for('reset_draft') }}">
         <button type="submit" class="reset-button">Reset Draft</button>
     </form>
     
