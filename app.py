@@ -137,6 +137,56 @@ def recommend_outfielders(team_players, remaining_players, chem_data, player_sta
     # Return the top 10 players
     return recommendations[:10]
 
+def sort_available_players(remaining_players, current_team, chem_data):
+    """
+    Sort available players into groups based on their chemistry with the current team:
+    1. Good Chemistry
+    2. 50/50 Chemistry (neutral)
+    3. Hated Chemistry
+    4. No Chemistry
+    """
+    good_chem_players = []
+    neutral_chem_players = []
+    hated_chem_players = []
+    no_chem_players = []
+
+    for player in remaining_players:
+        # Get the player's chemistry and hate data
+        player_chem_data = chem_data.loc[chem_data['Character Name'] == player]
+        if not player_chem_data.empty:
+            chemistry_list = player_chem_data['Chemistry'].values[0] if isinstance(player_chem_data['Chemistry'].values[0], (list, set)) else []
+            hate_list = player_chem_data['Hate'].values[0] if isinstance(player_chem_data['Hate'].values[0], (list, set)) else []
+        else:
+            chemistry_list = []
+            hate_list = []
+
+        # Check chemistry and hate relationships with the current team
+        positive_chem = len(set(chemistry_list).intersection(current_team))
+        negative_chem = len(set(hate_list).intersection(current_team))
+
+        if positive_chem > 0:
+            good_chem_players.append((player, positive_chem, negative_chem))
+        elif negative_chem > 0:
+            hated_chem_players.append((player, positive_chem, negative_chem))
+        elif positive_chem == 0 and negative_chem == 0:
+            neutral_chem_players.append((player, positive_chem, negative_chem))
+        else:
+            no_chem_players.append((player, positive_chem, negative_chem))
+
+    # Sort each group by positive chemistry (descending) and negative chemistry (ascending)
+    good_chem_players.sort(key=lambda x: (x[1], -x[2]), reverse=True)
+    neutral_chem_players.sort(key=lambda x: (x[1], -x[2]), reverse=True)
+    hated_chem_players.sort(key=lambda x: (x[1], -x[2]), reverse=True)
+    no_chem_players.sort(key=lambda x: (x[1], -x[2]), reverse=True)
+
+    # Combine all groups in the desired order
+    sorted_players = good_chem_players + neutral_chem_players + hated_chem_players + no_chem_players
+
+    # Extract just the player names for the final list
+    sorted_player_names = [player[0] for player in sorted_players]
+
+    return sorted_player_names
+
 @app.route('/')
 def index():
     return render_template('index.html', teams=teams)
@@ -197,6 +247,9 @@ def draft(team):
     if not any(player in teams[team] for player in ['RF', 'CF', 'LF']):
         outfield_recommendations = recommend_outfielders(teams[team], remaining_players, chem_data, player_stats, cf_player)
     
+    # Sort the remaining players based on chemistry
+    sorted_players = sort_available_players(remaining_players, teams[team], chem_data)
+    
     # Pass get_chemistry_links, get_hate_links, and chem_data to the template
     return render_template(
         'draft.html',
@@ -208,7 +261,7 @@ def draft(team):
         get_chemistry_links=get_chemistry_links,
         get_hate_links=get_hate_links,
         chem_data=chem_data,  # Pass chem_data to the template
-        remaining_players=remaining_players,  # Pass remaining players for the collapsible menu
+        remaining_players=sorted_players,  # Pass sorted remaining players
         remaining_captains=remaining_captains,  # Pass remaining captains for the warning
         teams_with_captain=teams_with_captain  # Pass teams_with_captain to the template
     )

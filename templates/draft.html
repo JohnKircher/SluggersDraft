@@ -66,41 +66,41 @@
     {% endif %}
 
     <!-- Top 5 Recommendations -->
-    <h2>Top 5 Recommendations</h2>
+    <!-- <h2>Top 5 Recommendations</h2>
     <form method="POST">
         <div class="players">
             {% for player in players %}
                 {% set chemistry_links = get_chemistry_links(player[0], roster, chem_data) %}
                 {% set hate_links = get_hate_links(player[0], roster, chem_data) %}
-                <button type="submit" name="pick" value="{{ player[0] }}" class="player-button {% if chemistry_links and hate_links %}both{% elif chemistry_links %}chemistry{% elif hate_links %}hate{% endif %}">
+                <button type="submit" name="pick" value="{{ player[0] }}" class="player-button {% if chemistry_links and hate_links %}both{% elif chemistry_links %}chemistry{% elif hate_links %}hate{% endif %}"> -->
                     <!-- Liked Players (Chemistry) -->
-                    {% if chemistry_links %}
+                    <!-- {% if chemistry_links %}
                         <span class="chemistry-links">
                             {% for link in chemistry_links %}
                                 <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="chemistry-image">
                             {% endfor %}
                         </span>
-                    {% endif %}
+                    {% endif %} -->
 
                     <!-- Main Player Image -->
-                    <img src="{{ url_for('static', filename='images/' + player[0] + '.png') }}" alt="{{ player[0] }}" class="player-image">
+                    <!-- <img src="{{ url_for('static', filename='images/' + player[0] + '.png') }}" alt="{{ player[0] }}" class="player-image"> -->
 
                     <!-- Hated Players -->
-                    {% if hate_links %}
+                    <!-- {% if hate_links %}
                         <span class="hate-links">
                             {% for link in hate_links %}
                                 <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="hate-image">
                             {% endfor %}
                         </span>
-                    {% endif %}
+                    {% endif %} -->
 
-                    <span class="score">(Score: {{ player[1] }})</span>
+                    <!-- <span class="score">(Score: {{ player[1] }})</span>
                 </button>
             {% endfor %}
         </div>
-    </form>
+    </form> -->
     
-    <!-- Outfielder Recommendations -->
+    <!-- Outfielder Recommendations
     {% if outfield_recommendations %}
     <h2>Outfielder Recommendations</h2>
     <div class="outfielders">
@@ -108,29 +108,29 @@
             {% for player, speed, chem_text in outfield_recommendations %}
                 {% set chemistry_links = get_chemistry_links(player, roster, chem_data) %}
                 {% set hate_links = get_hate_links(player, roster, chem_data) %}
-                <button type="submit" name="pick" value="{{ player }}" class="player-button {% if chemistry_links and hate_links %}both{% elif chemistry_links %}chemistry{% elif hate_links %}hate{% endif %}">
+                <button type="submit" name="pick" value="{{ player }}" class="player-button {% if chemistry_links and hate_links %}both{% elif chemistry_links %}chemistry{% elif hate_links %}hate{% endif %}"> -->
                     <!-- Liked Players (Chemistry) -->
-                    {% if chemistry_links %}
+                    <!-- {% if chemistry_links %}
                         <span class="chemistry-links">
                             {% for link in chemistry_links %}
                                 <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="chemistry-image">
                             {% endfor %}
                         </span>
-                    {% endif %}
+                    {% endif %} -->
 
                     <!-- Main Player Image -->
-                    <img src="{{ url_for('static', filename='images/' + player + '.png') }}" alt="{{ player }}" class="player-image">
+                    <!-- <img src="{{ url_for('static', filename='images/' + player + '.png') }}" alt="{{ player }}" class="player-image"> -->
 
                     <!-- Hated Players -->
-                    {% if hate_links %}
+                    <!-- {% if hate_links %}
                         <span class="hate-links">
                             {% for link in hate_links %}
                                 <img src="{{ url_for('static', filename='images/' + link + '.png') }}" alt="{{ link }}" class="hate-image">
                             {% endfor %}
                         </span>
-                    {% endif %}
+                    {% endif %} -->
 
-                    <span class="speed">(Speed: {{ speed }})</span>
+                    <!-- <span class="speed">(Speed: {{ speed }})</span>
                     {% if chem_text %}
                         <span class="chem-text">{{ chem_text }}</span>
                     {% endif %}
@@ -138,10 +138,10 @@
             {% endfor %}
         </form>
     </div>
-    {% endif %}
+    {% endif %} -->
     
     <!-- Collapsible Menu for All Players -->
-    <details>
+    <details open>
         <summary>Show All Available Players</summary>
         <div class="all-players">
             <form method="POST">
@@ -175,7 +175,7 @@
         </div>
     </details>
     
-    <!-- Designate Center Fielder -->
+    <!-- Designate Center Fielder
     <h2>Designate Center Fielder (CF)</h2>
     <form method="POST" action="{{ url_for('designate_cf', team=team) }}">
         <select name="cf_player">
@@ -186,6 +186,6 @@
         <button type="submit" class="cf-button">Designate CF</button>
     </form>
     
-    <a href="{{ url_for('index') }}" class="back-button">Back to Teams</a>
+    <a href="{{ url_for('index') }}" class="back-button">Back to Teams</a> -->
 </body>
 </html>

@@ -28,7 +28,7 @@ def min_max_scale_scores(scores):
 def calculate_chemistry_metric(current_team, player, remaining_players, df, k=0.9, x0=4.5, neg_chem_weight=.5):
     # Generate available players
     available_players = remaining_players
-    available_players = list(set(remaining_players) - set(player))
+    available_players = list(set(remaining_players) - set([player]))
 
     # Calculate the weight based on the size of the current team
     team_size = len(current_team)
@@ -47,16 +47,20 @@ def calculate_chemistry_metric(current_team, player, remaining_players, df, k=0.
 
     player_row = player_row.iloc[0]  # Safe to access now
 
+    # Ensure Chemistry is a list or set
+    chemistry_list = player_row['Chemistry'] if isinstance(player_row['Chemistry'], (list, set)) else []
+    hate_list = player_row['Hate'] if isinstance(player_row['Hate'], (list, set)) else []
+
     # Calculate positive and negative chemistry connections with the current team
-    positive_chem_current_team = len(set(player_row['Chemistry']).intersection(current_team))
-    negative_chem_current_team = len(set(player_row['Hate']).intersection(current_team)) * neg_chem_weight
+    positive_chem_current_team = len(set(chemistry_list).intersection(current_team))
+    negative_chem_current_team = len(set(hate_list).intersection(current_team)) * neg_chem_weight
 
     # Calculate positive and negative chemistry connections with the available players
-    positive_chem_available_players = len(set(player_row['Chemistry']).intersection(available_players))
-    negative_chem_available_players = len(set(player_row['Hate']).intersection(available_players)) * neg_chem_weight
+    positive_chem_available_players = len(set(chemistry_list).intersection(available_players))
+    negative_chem_available_players = len(set(hate_list).intersection(available_players)) * neg_chem_weight
 
     # Calculate the number of unique chemistry connections the player would add to the current team
-    unique_chem = len(set(player_row['Chemistry']) - set([item for string in current_team for item in df.loc[df['Character Name'] == string, 'Chemistry'].sum()]))
+    unique_chem = len(set(chemistry_list) - set([item for string in current_team for item in df.loc[df['Character Name'] == string, 'Chemistry'].values[0] if isinstance(item, (list, set))]))
 
     # Calculate the chemistry metric
     chemistry_metric = (
