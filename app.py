@@ -19,14 +19,14 @@ chem_data['Hate'] = chem_data['Hate'].apply(lambda x: ast.literal_eval(x) if isi
 
 # Hardcoded team names and initial picks
 teams = {
-    "BenT": [],
-    "Jmo": [],
-    "Tom": [],
-    "BenR": [],
-    "Julian": [],
     "HarryKirch": [],
+    "BenR": [],
+    "Carbone": [],
+    "Julian": [],
+    "Tom": [],
     "Kircher": [],
-    "Carbone": []
+    "Jmo": [],
+    "BenT": []
 }
 
 # List of captains
