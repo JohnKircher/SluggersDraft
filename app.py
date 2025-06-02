@@ -19,14 +19,14 @@ chem_data['Hate'] = chem_data['Hate'].apply(lambda x: ast.literal_eval(x) if isi
 
 # Hardcoded team names and initial picks
 teams = {
-    "BenT": [],
-    "Jmo": [],
-    "Tom": [],
-    "BenR": [],
     "Julian": [],
-    "HarryKirch": [],
     "Kircher": [],
-    "Carbone": []
+    "Carby": [],
+    "BenT": [],
+    "Tom": [],
+    "HarryKirch": [],
+    "Jmo": [],
+    "BenR": []
 }
 
 # List of captains
@@ -277,7 +277,7 @@ def index():
     # Generate a unique draft session if one does not exist
     if 'draft_id' not in session:
         session['draft_id'] = str(uuid.uuid4())  # Assign a unique session ID
-        session['teams'] = {team: [] for team in ["BenT", "Jmo", "Tom", "BenR", "Julian", "HarryKirch", "Kircher", "Carbone"]}
+        session['teams'] = {team: [] for team in ["Julian", "Kircher", "Carby", "BenT", "Tom", "HarryKirch", "Jmo", "BenR"]}
         session['teams_with_captain'] = {team: False for team in session['teams']}
         session['draft_order'] = list(session['teams'].keys())
         session['remaining_players'] = list(player_stats['Character'])
